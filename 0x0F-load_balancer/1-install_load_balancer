@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# This Bash script is designed to install and set up HAproxy on the server lb-01. 
+#The configuration for HAproxy is set up so that it directs traffic to the servers web-01 and web-02 using a round-robin algorithm.
+#The script also ensures that HAproxy can be managed using an init script and configures the servers with the correct hostnames, namely 158371-web-01 and 158371-web-02
+.
+# Install HAproxy
+apt-get update
+apt-get install haproxy -y
+
+# Configure HAproxy
+cat << EOF > /etc/haproxy/haproxy.cfg
+global
+        daemon
+        maxconn 256
+
+defaults
+        mode http
+        timeout connect 5000ms
+        timeout client 50000ms
+        timeout server 50000ms
+
+frontend http-in
+        bind *:80
+        default_backend servers
+
+backend servers
+        balance roundrobin
+        server 158371-web-01 54.160.98.170:80 check
+        server 158371-web-02 54.237.72.81:80 check
+EOF
+
+# Update hostname configuration
+echo "54.160.98.170" > /etc/hostname
+echo "54.237.72.81" >> /etc/hostname
+
+# Enable HAproxy init script
+sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/haproxy
+
+# Start HAproxy
+/etc/init.d/haproxy start
